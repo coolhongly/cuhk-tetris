@@ -1,47 +1,73 @@
-; Mini project
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Tetris ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;Group No.6	LCD		8259	8254    8255
+;		   (pin17) (pin18) (pin19) (pin20)
+;		 	0c0h	0b0h    0a0h    090h
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; LCD
-lcd_base_address_cs1	equ 0c0h
-lcd_base_address_cs2 	equ 0c0h
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;pin assign
+;8088 system        64x128 lcd
+;power ground       Vss
+;+5V                VDD
+;NC                 Vo
+;A0                 RS
+;INVERTED DT/R      R/W
+;CS_LCD             E
+;AD0-AD7            DB0-DB7
+;A1                 CS1
+;A2                 CS2
+;+5V                RSTB
+;NC                 VOUT
+;NC                 BLA
+;NC                 BLK
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Time generator
-i8254_base_address 	equ 0a0h
+lcd_base				equ 11000000b
+lcd_cs1_control			equ 11000010b
+lcd_cs1_data			equ 11000011b
+lcd_cs2_control 		equ 11000100b 
+lcd_cs2_data			equ 11000101b ; LCD
 
-; PPI
-i8255_base_address 	equ 090h
+i8254_base_address 		equ 0a0h ; Time generator
+i8255_base_address 		equ 090h ; PPI
+i8259_base_address 		equ 0b0h ; Interrupt
 
-; Interrupt
-i8259_base_address 	equ 0b0h
-
-;
-x_base  equ 10111000b
-y_base  equ 01000000b
-
-; Random generator
-seed equ 1011011100101101b
-a equ 1101b
-c equ 1011101111011011b
+x_base  				equ 10111000b
+y_base  				equ 01000000b
+seed 					equ 10110111b
+a 						equ 1101b
+c 						equ 11110101b ; Random generator
 
 stack_seg segment at 0
 top_of_stack equ 800h
 stack_seg ends
 
 data_seg segment at 0
-	box1	db	?
-	box2	db	?
-	box3	db	?
-	box4	db	?
-	box5	db	?
-	box6	db	?
-	box7	db	?
-	box8	db	?
-	box9	db	?
-	box10	db	?
-	box11 	db	?
-	random_seed	db	?
+	box1			db	?
+	box2			db	?
+	box3			db	?
+	box4			db	?
+	box5			db	?
+	box6			db	?
+	box7			db	?
+	box8			db	?
+	box9			db	?
+	box10			db	?
+	box11			db	?
+	random_seed		db	?
 	random_number	db	?
-	center_x	db	?
-	center_y	db	?
+	center_x		db	?
+	center_y		db	?
+	rev1			db	?
+	rev2			db	?
+	rev3			db	?
+	rev4			db	?
+	para1			db	?
+	para2			db	?
+	para3			db	?
+	para4
 data_seg ends
 
 ; Dummy code
@@ -60,61 +86,101 @@ assume cs:code_seg
 start:
 	mov ax,data_seg ;initialize DS
 	mov ds,ax
-	assume ds:data_seg
+	mov es,ax
+	assume ds:data_seg, es:data_seg
 	mov ax,stack_seg ;initialize SS
 	mov ss,ax
 	assume ss:stack_seg
 	mov sp,top_of_stack ;initialise SP
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
+	mov dx, lcd_cs1_control
+	mov al, 00111111b
+	out dx, al ; start lcd
+	
+	call check_reset
+	call check_busy
+	mov dx, lcd_cs1_control
+	mov al, 10111001b
+	out dx, al ; set x
+	
+	call check_busy
+	mov dx, lcd_cs1_control
+	mov al, 01000001b
+	out dx, al ; set y343
+	
+	call check_busy
+	mov dx, lcd_cs1_data
+	mov al, 00001111b
+	out dx, al ; set value
+	
 	;call 8254_init not used
-	mov random_seed, seed
+	;mov random_seed, seed
 	
-	call 8255_init ; Done
-	call 8259_init
+	;call 8255_init ; Done
+	;call 8259_init
 	
-	stage0:	; Game stage
-		call LCD_init ; Done
+	;stage0:	; Game stage
+		;call LCD_init ; Done
 
-		stage1:	; Life stage
-			call random_generator ; Done
-			call box_init ; Done
-			call tetris_init ; 
+		;stage1:	; Life stage
+			;call random_generator ; Done
+			;call box_init ; Done
+			;call tetris_init ; 
 
-			stage2: ; Drop stage
-				call delay
-				call if_dead ; al = 1 dead
+			; stage2: ; Drop stage
+				; call delay
+				; call if_dead ; al = 1 dead
 				
 				; dead
-				cmp al, 0
-				jnz dead
+				; cmp al, 0
+				; jnz dead
 				
-				call collision ; al = 0 if no collision, al != if collision
+				; call collision ; al = 0 if no collision, al != if collision
 				
 				; collision
-				cmp al, 0
-				jnz collision_happen
+				; cmp al, 0
+				; jnz collision_happen
 				
-				call LCD_erase
-				call tetris_drop
-				call LCD_print
-				jmp collision_happen_skip
+				; call LCD_erase
+				; call tetris_drop
+				; call LCD_print
+				; jmp collision_happen_skip
 				
-				collision_happen:
-					call LCD_elminate
-					call LCD_drop
-				collision_happen_skip:
+				; collision_happen:
+					; call LCD_elminate
+					; call LCD_drop
+				; collision_happen_skip:
 
-			jmp stage2
-		jmp stage1
+			; jmp stage2
+		; jmp stage1
 		
-		dead:
+		; dead:
 		
-	jmp stage0
+	; jmp stage0
 
 	loopend:
 	nop
 	jmp loopend
+	
+	check_reset proc near
+		mov dx, lcd_cs1_control
+		check_reset_loop
+		in al, dx
+		test al, 00010000b
+		jnz check_reset_loop
+		ret
+	check_reset endp
+	
+	check_busy proc near
+		mov dx, lcd_cs1_control
+		check_busy_loop:
+		in al, dx
+		test al, 10000000b
+		jnz check_busy_loop
+		ret
+	check_busy endp
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 	8254_init proc near
@@ -123,21 +189,21 @@ start:
 ; 	8254_init endp
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	8255_init proc near
-		mov dx,i8255_base_address
-		mov al,1000000b
-		inc dx
-		inc dx
-		inc dx ; Point to command register
-		out dx,al
-		ret
-	8255_init endp
+	; 8255_init proc near
+		; mov dx,i8255_base_address
+		; mov al,1000000b
+		; inc dx
+		; inc dx
+		; inc dx ; Point to command register
+		; out dx,al
+		; ret
+	; 8255_init endp
 	
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	8259_init proc near
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	; 8259_init proc near
 	
-		ret
-	8259_init endp
+		; ret
+	; 8259_init endp
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	box_init proc near
@@ -159,8 +225,9 @@ start:
 	collision proc near
 		mov cx, 11
 		collision_loop:
-			mov al, box1+11-cl
-			test box1+11-cl, 10000000b
+			mov bx, cx
+			mov al, DS:[box1+11+bx]
+			test DS:[box1+11-bx], 10000000b
 			jz collision_test_skip
 			
 			; Put signed x coordinate into ah
@@ -176,7 +243,7 @@ start:
 			call collision_test ;(ifcollision:al is not equal to 0) func(signed x:ah, signed y:al)
 			cmp al,0
 			jnz collision_yes
-			collision_test_skip
+			collision_test_skip:
 		loop collision_loop
 		mov al, 0 ;set al to be 0 if no collision
 		collision_yes: 
@@ -194,17 +261,28 @@ start:
 	collision_test endp
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	call coordinate_absolute_to_LCD ; (x:ah, y:al, cs:bl) func(x:ah, y:al)
-		; x
-		mul ah, 4
-		dec ah
+	coordinate_absolute_to_LCD proc near; (x:ah, y:al, cs:bl) func(x:ah, y:al)
+		push cx
+		mov bh, ah ; store x in bh
 		
-		; y
-		mul al, 4
-		dec al
+		;y
+		mov cx, 4
+		mul cl
+		dec al ; y in al
+		
+		mov bl, al ; store y in bl
+		
+		; x
+		mov al, bh
+		mul cl ; now x in al
+		
+		; move x, y to right places
+		mov ah, al ; move x to ah
+		mov al, bl ; move y to al
+		
 
 		; in cs1 or cs2
-		cmp y, 63
+		cmp al, 63
 		jg coordinate_absolute_to_LCD_cs2 ; is in cs2
 			mov bl, 63d
 			sub bl, al
@@ -215,6 +293,7 @@ start:
 			sub al, 64d
 			mov bl, 1d
 		coordinate_absolute_to_LCD_cs2_skip:
+		pop cx
 		ret
 	coordinate_absolute_to_LCD endp
 	
@@ -242,19 +321,19 @@ start:
 		add al, bl
 		coordinate_relative_to_absolute_y_add_skip:
 		ret
-	coordinate_relative_to_LCD endp
+	coordinate_relative_to_absolute endp
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	delay proc near
 	
 		ret
-	collision endp
+	delay endp
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	LCD_clean proc near
 		mov dx, i8255_base_address + 1 ; PPI PA
 		mov al, 000h ; Reset signal
-		mov dx, al
+		out dx, al
 		
 		; Reset cs1
 		mov dx, lcd_base_address_cs1;
@@ -265,7 +344,7 @@ start:
 			
 		; Reset cs2
 		mov dx, lcd_base_address_cs2;
-		LCD_clean_wait_cs2 ; Wait for LCD to reset
+		LCD_clean_wait_cs2: ; Wait for LCD to reset
 			in al, dx
 			test al, 00010000b
 			jnz LCD_clean_wait_cs2
@@ -308,12 +387,14 @@ start:
 		mov dx, lcd_base_address_cs2
 		LCD_read_cs2_skip:
 		out dx, al
-		out dx, bh
+		mov al, bh; move y to al for out action
+		out dx, al
 		in al, dx ; get data in al
 		
 		; get test bit
 		push cx
-		mov cx, ah
+		mov cx, 0
+		mov cl, ah
 		mov ah, 0
 		LCD_read_loop:
 			inc ah
@@ -343,7 +424,7 @@ start:
 		
 		; Print cs1
 		mov dx, lcd_base_address_cs1
-		call print_boarder_row
+		call print_boarder_row ; x:bh y:bl value:al
 		
 		; Print cs2
 		mov dx, lcd_base_address_cs2
@@ -360,10 +441,14 @@ start:
 	print_border endp
 	
 	print_boarder_row proc near
-		out dx, bh ; set x
-		out dx, bl ; set y
+		mov ah, al ; store value in ah
+		mov al, bh ; put x in al
+		out dx, al ; set x
+		mov al, bl ; put y in al
+		out dx, al ; set y
 		mov cx, 64 ; set loop length
 		inc dx ; set dx to be lcd_base_address_* + 1
+		mov al, ah ; put value in al for output
 		print_boarder_row_loop:
 			out dx, al ; output value
 		loop print_boarder_row_loop
@@ -373,22 +458,27 @@ start:
 	print_boarder_column proc near
 		mov cx, 8 ; set loop length
 		print_boarder_column_loop:
-			out dx, bh ; set x
-			out dx, bl ; set y
+			mov ah, al ; store value in ah
+			mov al, bh ; put x in al
+			out dx, al ; set x
+			mov al, bl ; put y in al
+			out dx, al ; set y
 			inc dx ; set dx to be lcd_base_address_* + 1
+			mov al, ah ; put value in al for output
 			out dx, al ; output value
 			inc bh ; x += 1
 			dec dx ; set dx to be lcd_base_address_*
 		loop print_boarder_column_loop
 		ret
-	print_boarder_row endp
+	print_boarder_column endp
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	random_generator proc near
 		; Using formular x1 = ( x0 * a + c ) MOD 2^16 to generate random seed
-		mov ax, random_seed 
-		mul ax, a
-		adc ax, c
-		mov random_seed, ax
+		mov al, random_seed
+		mov cl, a
+		mul cl
+		adc al, c
+		mov random_seed, al
 		
 		; Get remainder
 		mov cx, 7
