@@ -49,25 +49,16 @@ data_seg	segment at 0
 	box2			db	?
 	box3			db	?
 	box4			db	?
-	box5			db	?
-	box6			db	?
-	box7			db	?
-	box8			db	?
-	box9			db	?
-	box10			db	?
-	box11			db	?
 	
-	nbox1			db	?
-	nbox2			db	?
-	nbox3			db	?
-	nbox4			db	?
-	nbox5			db	?
-	nbox6			db	?
-	nbox7			db	?
-	nbox8			db	?
-	nbox9			db	?
-	nbox10			db	?
-	nbox11			db	?
+	box1_tmp1		db	?
+	box2_tmp1		db	?
+	box3_tmp1		db	?
+	box4_tmp1		db	?
+	
+	box1_tmp2		db	?
+	box2_tmp2		db	?
+	box3_tmp2		db	?
+	box4_tmp2		db	?
 	
 	row1			dw	?
 	row2			dw	?
@@ -89,6 +80,7 @@ data_seg	segment at 0
 	row18			dw	?
 	row19			dw	?
 	row20			dw	?
+	
 	random_seed		dw	?
 	random_number	dw	?
 	
@@ -99,6 +91,8 @@ data_seg	segment at 0
 	count_max		db  ?
 	
 	tmp				db	?
+	tmp1			db	?
+	erase_or_print 	db	?
 data_seg ends
 
 ; Dummy code
@@ -126,7 +120,7 @@ start:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	mov random_seed, seed
 	
-	call 8259_init
+	call 8259_init ; Done
 	call 8255_init ; Done
 	
 	stage0:	; Game stage
@@ -134,30 +128,34 @@ start:
 
 		stage1:	; Life stage
 			call random_generator ; Done
-			call box_init ; Done
-			call tetris_init ; 
-
+			call tetris_init ; Done
+				
 			stage2: ; Drop stage
-				 call delay
-				 call dead ; al = 1 dead
+				call delay ; Pending
+				call dead ; Pending al = 1 dead
+
+				dead
+				cmp al, 0
+				jnz dead
+
+				dec center_y
+				call collision ; Done R(bl: collision 1, no collision 0)
+			 	
+				test bl, bl
+				jnz main_collision_happen
+
+				inc center_y
+				call LCD_erase ; Done
+				dec center_y
+				call LCD_print ; Done
 				
-				 dead
-				 cmp al, 0
-				 jnz dead
-				
-				 call collision ; Done
-				 mov al, bl ; Done bl: collision 1, no collision 0
-				 
-				 test al, al
-				 jnz collision_happen
-				
-				 call LCD_update ; Done
-				 jmp collision_not_happen
-				
-				 collision_happen:
-					 call LCD_elminate
-					 call LCD_drop
-				 collision_not_happen:
+				jmp main_collision_happen_skip
+
+				main_collision_happen:
+					inc center_y
+					call LCD_elminate ; Pending
+					call LCD_drop ; Pending
+				main_collision_happen_skip:
 
 			 jmp stage2
 		 jmp stage1
@@ -242,108 +240,90 @@ start:
 		pop dx
 		ret
 	8259_init endp
-	
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	box_init proc near
-		mov box1, 00101001b
-		mov box2, 00000001b
-		mov box3, 00001001b
-		mov box4, 00101000b
-		mov box5, 00000000b
-		mov box6, 00001000b
-		mov box7, 00010000b
-		mov box8, 00101101b
-		mov box9, 00000101b
-	   mov box10, 00001101b
-	   mov box11, 00000110b
 		
-		ret
-	box_init endp
-	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	check_reset proc near
-		mov dx, lcd_cs1_control
-		check_reset_loop
-		in al, dx
-		test al, 00010000b
-		jnz check_reset_loop
-		ret
-	check_reset endp
-	
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	check_busy proc near
-		mov dx, lcd_cs1_control
-		check_busy_loop:
-		in al, dx
-		test al, 10000000b
-		jnz check_busy_loop
-		ret
-	check_busy endp
-	
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	collision proc near
 		push dx
 		push cx
 		push ax
 
-		mov cx, 11
-		collision_loop:
-			mov al, DS:[box1+cx-1]
-			test al, 01000000b
-			jz collision_test_skip
+		mov cx, 4
+		collision_loop0:
+			mov di, cx
+			mov ah, DS:[box1+4-di] ; start from box1
+			mov bl, cl
+			sub bl, 3 ; bl: relative y address
+			add bl, 80 ; bl: absolute y address
+			mov al, 00000001b
 			
-			; Put signed x coordinate into ah
-			mov ah, al
-			and ah, 00111000b
-			ror ah, 1
-			ror ah, 1
-			ror ah, 1 
-			
-			; Put signed y coordinate into al
-			and al, 00000111b
-
-			mov bh, ah ; bh: relative x coordinate
-			mov bl, al ; bl: relative y coordinate
-			call coordinate_relative_to_absolute
-			mov ah, bh ; bh: absolute x coordinate
-			mov al, bl ; bl: absolute y coordinate
-			
-			cmp al, 1
-			jl collision_end0
-			cmp al, 40
-			jg collision_end0
-			cmp ah, 1
-			jl collision_end0
-			cmp ah, 80
-			jg collision_end0
-			
-			mov bh, ah ; bh: absolute x coordinate
-			mov bl, al ; bl: absolute y coordinate
-			call coordinate_absolute_to_LCD
-			mov ah, bh ; bh: LCD x coordinate + cs + m or l
-			mov al, bl ; bl: LCD y coordinate
-			
-			mov bh, ah ; bh: LCD x coordinate + cs + m or l
-			mov bl, al ; bl: LCD y coordinate
-			call LCD_read
-			mov al, bl ; bl: exist 1, not exist 0 
-			
-			test al, al
-			jnz collision_yes
-			collision_test_skip:
-			loop collision_loop
-		collision_yes: 
-			mov bl, al ; bl: collision 1, no collision 0
-			jmp collision_end0_skip
-		collision_end0:
-			mov bl, 1
-		collision_end0_skip: nop
-		
+			push cx
+			mov cx, 4
+			collision_loop1:
+				test ah, al	
+				jz collision_loop1_continue
+				mov bh, cl
+				sub bh, 2 ; bh: relative x address
+				ad bh, 40 ; bh: absolute x address
+				collision_test ; R(bh: 1 for collision, 0 otherwise)-P(bh: absolute x address, const bl: absolute y address)
+				test bh, bh
+				jnz collision_end1
+				collision_loop1_continue:
+				rol al, 1
+				loop collision_loop1
+			pop cx
+			loop collision_loop0
+		mov bl, 0
+		jmp collision_end0
+		collision_end1: 
+			mov bl, 1 
+		collision_end0: 
+	
 		pop ax
-		pop cs
+		pop cx
 		pop dx
 		ret
 	collision endp
+	
+	collision_test proc near ; R(bh: 1 for collision, 0 otherwise)-P(bh: relative x address, const bl: relative y address)
+		push dx
+		push cx
+		push ax
+			
+		cmp bh, 1
+		jl collision_test_end1
+		cmp bh, 40
+		jg collision_test_end1
+		
+		mov al, bl
+		cmp al, 1
+		jl collision_test_end1
+		cmp al, 80
+		jg collision_test_end1
+		
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax
+		mov dx, DS:[row1+di-2] ; dx: value of a row
+		
+		mov cx, bh
+		dec cx
+		mov ax, 0000001000000000b
+		collision_test_loop0:
+			ror ax, 1
+			loop collision_test_loop0 ;
+		test ax, dx
+		jnz collision_test_end1
+		mov bh, 0
+		jmp collision_test_end0
+		collision_test_end1:
+			mov bh, 1
+		collision_test_end0:
+			
+		pop ax
+		pop cx
+		pop dx
+		ret
+	collision_test endp
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	coordinate_absolute_to_LCD proc near;
@@ -389,45 +369,7 @@ start:
 		pop dx
 		ret
 	coordinate_absolute_to_LCD endp
-	
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	coordinate_relative_to_absolute proc near
-		push dx
-		push cx
-		push ax
 		
-		; bh: relative x coordinate
-		; bl: relative y coordinate
-		
-		; translate x
-		mov ah, center_x 
-		test bh, 00000100b
-		jz coordinate_relative_to_absolute_x_add
-		sub ah, bh
-		jmp coordinate_relative_to_absolute_x_add_skip
-		coordinate_relative_to_absolute_x_add:
-		add ah, bh
-		coordinate_relative_to_absolute_x_add_skip:
-		
-		; translate y
-		mov al, center_y
-		test bl, 00000100b
-		jz coordinate_relative_to_absolute_y_add
-		sub al, bl
-		jmp coordinate_relative_to_absolute_y_add_skip
-		coordinate_relative_to_absolute_y_add:
-		add al, bl
-		coordinate_relative_to_absolute_y_add_skip:
-		
-		mov bh, ah
-		mov bl, al
-		
-		pop ax
-		pop cx
-		pop dx
-		ret
-	coordinate_relative_to_absolute endp
-	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	delay proc near
 	
@@ -447,20 +389,12 @@ start:
 		push cx
 		push ax
 		
-		mov nbox1, 00101001b
-		mov nbox2, 00000001b
-		mov nbox3, 00001001b
-		mov nbox4, 00101000b
-		mov nbox5, 00000000b
-		mov nbox6, 00001000b
-		mov nbox7, 00010000b
-		mov nbox8, 00101101b
-		mov nbox9, 00000101b
-	   mov nbox10, 00001101b
-	   mov nbox11, 00000110b
+		mov box1_tmp1, box1
+		mov box2_tmp1, box2
+		mov box3_tmp1, box3
+		mov box4_tmp1, box4
+
 		
-		mov al, 11000000b
-		mov ah, 01000000b
 		cmp random_number, 0
 		je int_service_0_I
 		cmp random_number, 1
@@ -482,17 +416,17 @@ start:
 			cmp count, 2
 			je int_service_0_I_2
 			int_service_0_I_1:
-				or nbox2, ah
-				or nbox5, ah
-				or nbox9, ah
-				or nbox11, al
+				mov box1, 00000100b
+				mov box2, 00000100b
+				mov box3, 00000100b
+				mov box4, 00000100b
 				jmp int_service_0_end0
 				
 			int_service_0_I_2:
-				or nbox4, al
-				or nbox5, al
-				or nbox6, al
-				or nbox7, al
+				mov box1, 00000000b
+				mov box2, 00001111b
+				mov box3, 00000000b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 		int_service_0_T:
@@ -505,31 +439,31 @@ start:
 			cmp count, 4
 			je int_service_0_T_4
 			int_service_0_T_1:
-				or nbox2, ah
-				or nbox4, al
-				or nbox5, ah
-				or nbox6, al
+				mov box1, 00000100b
+				mov box2, 00001100b
+				mov box3, 00000100b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 			int_service_0_T_2:
-				or nbox2, ah
-				or nbox4, al
-				or nbox5, al
-				or nbox6, al
+				mov box1, 00000100b
+				mov box2, 00001110b
+				mov box3, 00000000b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 			int_service_0_T_3:
-				or nbox2, ah
-				or nbox5, ah
-				or nbox6, al
-				or nbox9, al
+				mov box1, 00000100b
+				mov box2, 00000110b
+				mov box3, 00000100b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 			int_service_0_T_4:
-				or nbox4, al
-				or nbox5, ah
-				or nbox6, al
-				or nbox9, al
+				mov box1, 00000000b
+				mov box2, 00001110b
+				mov box3, 00000100b
+				mov box4, 00000000b
 			    jmp int_service_0_end0
 			
 		int_service_0_L:
@@ -542,31 +476,31 @@ start:
 			cmp count, 4
 			je int_service_0_L_4
 			int_service_0_L_1:
-				or nbox1, al
-				or nbox2, ah
-				or nbox5, ah
-				or nbox9, al
+				mov box1, 00001100b
+				mov box2, 00000100b
+				mov box3, 00000100b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 			int_service_0_L_2:
-				or nbox3, ah
-				or nbox4, al
-				or nbox5, al
-				or nbox6, al
+				mov box1, 00000010b
+				mov box2, 00001110b
+				mov box3, 00000000b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 			int_service_0_L_3:
-				or nbox2, ah
-				or nbox5, ah
-				or nbox9, al
-				or nbox10, al
+				mov box1, 00000100b
+				mov box2, 00000100b
+				mov box3, 00000110b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 			
 			int_service_0_L_4:
-				or nbox4, ah
-				or nbox5, al
-				or nbox6, al
-				or nbox8, al
+				mov box1, 00000000b
+				mov box2, 00001110b
+				mov box3, 00001000b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 			
 		int_service_0_J:
@@ -579,31 +513,31 @@ start:
 			cmp count, 4
 			je int_service_0_J_4
 			int_service_0_J_1:
-				or nbox2, ah
-				or nbox5, ah
-				or nbox8, al
-				or nbox9, al
+				mov box1, 00000100b
+				mov box2, 00000100b
+				mov box3, 00001100b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 			int_service_0_J_2:
-				or nbox1, ah
-				or nbox4, al
-				or nbox5, al
-				or nbox6, al
+				mov box1, 00001000b
+				mov box2, 00001110b
+				mov box3, 00000000b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 			int_service_0_J_3:
-				or nbox2, ah
-				or nbox3, al
-				or nbox5, ah
-				or nbox9, al
+				mov box1, 00000110b
+				mov box2, 00000100b
+				mov box3, 00000100b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 			
 			int_service_0_J_4:
-				or nbox4, al
-				or nbox5, al
-				or nbox6, ah
-				or nbox10, al
+				mov box1, 00000000b
+				mov box2, 00001110b
+				mov box3, 00000010b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 		int_service_0_Z:
@@ -612,17 +546,17 @@ start:
 			cmp count, 2
 			je int_service_0_Z_2
 			int_service_0_Z_1:
-				or nbox3, ah
-				or nbox5, ah
-				or nbox6, al
-				or nbox9, al
+				mov box1, 00000010b
+				mov box2, 00000110b
+				mov box3, 00000100b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 			int_service_0_Z_2:
-				or nbox4, al
-				or nbox5, ah
-				or nbox9, al
-				or nbox10, al
+				mov box1, 00000000b
+				mov box2, 00001100b
+				mov box3, 00000110b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 			
 		int_service_0_S:
@@ -631,153 +565,49 @@ start:
 			cmp count, 2
 			je int_service_0_S_2
 			int_service_0_S_1:
-				or nbox2, ah
-				or nbox5, al
-				or nbox6, ah
-				or nbox10, al
+				mov box1, 00000100b
+				mov box2, 00000110b
+				mov box3, 00000010b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 			int_service_0_S_2:
-				or nbox5, ah
-				or nbox6, al
-				or nbox8, al
-				or nbox9, al
+				mov box1, 00000000b
+				mov box2, 00000110b
+				mov box3, 00001100b
+				mov box4, 00000000b
 				jmp int_service_0_end0
 				
 		int_service_0_O:
-			jmp int_service_0_end1
-
+			jmp int_service_0_end2
+		
+		jmp int_service_0_end0:
+		
 ; test if there is any collision or exceeding the realm
-		mov cx, 11
-		int_service_0_loop0:
-			mov al, DS[nbox1+cx-1]
-			test al, 01000000b
-			jz int_service_0_loop0_skip
+		call collision ;R(bl: collision 1, no collision 0)
 			
-			; Put signed x coordinate into ah
-			mov ah, al
-			and ah, 00111000b
-			ror ah, 1
-			ror ah, 1
-			ror ah, 1 
-			
-			; Put signed y coordinate into al
-			and al, 00000111b
-
-			mov bh, ah ; bh: relative x coordinate
-			mov bl, al ; bl: relative y coordinate
-			call coordinate_relative_to_absolute
-			mov ah, bh ; bh: absolute x coordinate
-			mov al, bl ; bl: absolute y coordinate
-			
-			cmp al, 1
-			jl int_service_0_end1
-			cmp al, 40
-			jg int_service_0_end1
-			cmp ah, 1
-			jl int_service_0_end1
-			cmp ah, 80
-			jg int_service_0_end1
-			
-			mov bh, ah ; bh: absolute x coordinate
-			mov bl, al ; bl: absolute y coordinate
-			call coordinate_absolute_to_LCD
-			mov ah, bh ; bh: LCD x coordinate + cs + m or l
-			mov al, bl ; bl: LCD y coordinate
-			
-			mov bh, ah ; bh: LCD x coordinate + cs + m or l
-			mov bl, al ; bl: LCD y coordinate
-			call LCD_read
-			mov al, bl ; bl: exist 1, not exist 0 
-			
-			test al, al
-			jnz int_service_0_loop0_collision_yes
-			int_service_0_loop0_skip:
-			loop int_service_0_loop0
-		int_service_0_loop0_collision_yes:  nop
-			; al: collision 1, no collision 0
-			
-		test al, al ; test if there is collision
+		test bl, bl
 		jnz int_service_0_end1
 		
 ; erase LCD
-		mov cs, 11
-		int_service_0_loop1:
-			mov al, DS[box1+cs-1]
-			test al, 01000000b
-			jz int_service_0_loop1_skip
-			
-			; Put signed x coordinate into ah
-			mov ah, al
-			and ah, 00111000b
-			ror ah, 1
-			ror ah, 1
-			ror ah, 1 
-			
-			; Put signed y coordinate into al
-			and al, 00000111b
+		mov box1_tmp2, box1
+		mov box2_tmp2, box2
+		mov box3_tmp2, box3
+		mov box4_tmp2, box4
 
-			mov bh, ah ; bh: relative x coordinate
-			mov bl, al ; bl: relative y coordinate
-			call coordinate_relative_to_absolute
-			mov ah, bh ; bh: absolute x coordinate
-			mov al, bl ; bl: absolute y coordinate
-			
-			mov bh, ah ; bh: absolute x coordinate
-			mov bl, al ; bl: absolute y coordinate
-			call coordinate_absolute_to_LCD
-			mov ah, bh ; bh: LCD x coordinate + cs + m or l
-			mov al, bl ; bl: LCD y coordinate
-			
-			mov bh, ah ; bh: LCD x coordinate + cs + m or l
-			mov bl, al ; bl: LCD y coordinate
-			call LCD_erase
-			
-			int_service_0_loop1_skip:
-			loop int_service_0_loop1
+		mov box1, box1_tmp1
+		mov box2, box2_tmp1
+		mov box3, box3_tmp1
+		mov box4, box4_tmp1
+		
+		call LCD_erase
 
 ; print LCD
-		mov cs, 11
-		int_service_0_loop2:
-			mov al, DS[nbox1+cs-1]
-			test al, 01000000b
-			jz int_service_0_loop2_skip
-			
-			; Put signed x coordinate into ah
-			mov ah, al
-			and ah, 00111000b
-			ror ah, 1
-			ror ah, 1
-			ror ah, 1 
-			
-			; Put signed y coordinate into al
-			and al, 00000111b
-
-			mov bh, ah ; bh: relative x coordinate
-			mov bl, al ; bl: relative y coordinate
-			call coordinate_relative_to_absolute
-			mov ah, bh ; bh: absolute x coordinate
-			mov al, bl ; bl: absolute y coordinate
-			
-			mov bh, ah ; bh: absolute x coordinate
-			mov bl, al ; bl: absolute y coordinate
-			call coordinate_absolute_to_LCD
-			mov ah, bh ; bh: LCD x coordinate + cs + m or l
-			mov al, bl ; bl: LCD y coordinate
-			
-			mov bh, ah ; bh: LCD x coordinate + cs + m or l
-			mov bl, al ; bl: LCD y coordinate
-			call LCD_print
-			
-			int_service_0_loop2_skip:
-			loop int_service_0_loop2
-			
-; update box
-		mov cx, 11
-		int_service_0_loop3:
-			mov al, DS[nbox1+cs-1]
-			mov DS[box1+cs-1], al
-			loop int_service_0_loop3
+		mov box1, box1_tmp2
+		mov box2, box2_tmp2
+		mov box3, box3_tmp2
+		mov box4, box4_tmp2
+		call LCD_print
 			
 ; update count
 		cmp count, count_max
@@ -786,8 +616,16 @@ start:
 		jmp int_service_0_end1: nop
 		int_service_0_count_add:
 			inc count
+			
+		jmp int_service_0_end2
 		
-		int_service_0_end1: nop
+		int_service_0_end1: 
+			mov box1, box1_tmp1
+			mov box2, box2_tmp1
+			mov box3, box3_tmp1
+			mov box4, box4_tmp1
+			
+		int_service_0_end2: 
 		
 		pop ax
 		pop cx
@@ -828,57 +666,10 @@ start:
 		int_service_move_right0_skip:
 		
 ; test if there is any collision or exceeding the realm
-		mov cx, 11
-		int_service_move_loop0:
-			mov al, DS[box1+cx-1]
-			test al, 01000000b
-			jz int_service_move_loop0_skip
+		call collision ;R(bl: collision 1, no collision 0)
 			
-			; Put signed x coordinate into ah
-			mov ah, al
-			and ah, 00111000b
-			ror ah, 1
-			ror ah, 1
-			ror ah, 1 
-			
-			; Put signed y coordinate into al
-			and al, 00000111b
-
-			mov bh, ah ; bh: relative x coordinate
-			mov bl, al ; bl: relative y coordinate
-			call coordinate_relative_to_absolute
-			mov ah, bh ; bh: absolute x coordinate
-			mov al, bl ; bl: absolute y coordinate
-			
-			cmp al, 1
-			jl int_service_move_end1
-			cmp al, 40
-			jg int_service_move_end1
-			cmp ah, 1
-			jl int_service_move_end1
-			cmp ah, 80
-			jg int_service_move_end1
-			
-			mov bh, ah ; bh: absolute x coordinate
-			mov bl, al ; bl: absolute y coordinate
-			call coordinate_absolute_to_LCD
-			mov ah, bh ; bh: LCD x coordinate + cs + m or l
-			mov al, bl ; bl: LCD y coordinate
-			
-			mov bh, ah ; bh: LCD x coordinate + cs + m or l
-			mov bl, al ; bl: LCD y coordinate
-			call LCD_read
-			mov al, bl ; bl: exist 1, not exist 0 
-			
-			test al, al
-			jnz int_service_move_loop0_collision_yes
-			int_service_move_loop0_skip:
-			loop int_service_move_loop0
-		int_service_move_loop0_collision_yes:  nop
-			; al: collision 1, no collision 0
-			
-		test al, al ; test if there is collision
-		jnz int_service_move_end1
+		test bl, bl ; test if there is collision
+		jnz int_service_move_end0
 		
 ; erase LCD
 		cmp tmp, 1
@@ -889,40 +680,7 @@ start:
 			dec center_x
 		int_service_move_right1_skip:
 		
-		mov cs, 11
-		int_service_move_loop1:
-			mov al, DS[box1+cs-1]
-			test al, 01000000b
-			jz int_service_move_loop1_skip
-			
-			; Put signed x coordinate into ah
-			mov ah, al
-			and ah, 00111000b
-			ror ah, 1
-			ror ah, 1
-			ror ah, 1 
-			
-			; Put signed y coordinate into al
-			and al, 00000111b
-
-			mov bh, ah ; bh: relative x coordinate
-			mov bl, al ; bl: relative y coordinate
-			call coordinate_relative_to_absolute
-			mov ah, bh ; bh: absolute x coordinate
-			mov al, bl ; bl: absolute y coordinate
-			
-			mov bh, ah ; bh: absolute x coordinate
-			mov bl, al ; bl: absolute y coordinate
-			call coordinate_absolute_to_LCD
-			mov ah, bh ; bh: LCD x coordinate + cs + m or l
-			mov al, bl ; bl: LCD y coordinate
-			
-			mov bh, ah ; bh: LCD x coordinate + cs + m or l
-			mov bl, al ; bl: LCD y coordinate
-			call LCD_erase
-			
-			int_service_move_loop1_skip:
-			loop int_service_move_loop1
+		call LCD_erase
 
 ; print LCD
 		cmp tmp, 1
@@ -933,42 +691,20 @@ start:
 			inc center_x
 		int_service_move_right2_skip:
 		
-		mov cs, 11
-		int_service_move_loop2:
-			mov al, DS[box1+cs-1]
-			test al, 01000000b
-			jz int_service_move_loop2_skip
+		call LCD_print
+		
+		jmp int_service_move_end1
+		
+		int_service_move_end0: 
+			cmp tmp, 1
+			je int_service_move_right3
+			inc center_x
+			jmp int_service_move_right3_skip
+			int_service_move_right3:
+				dec center_x
+			int_service_move_right3_skip:
 			
-			; Put signed x coordinate into ah
-			mov ah, al
-			and ah, 00111000b
-			ror ah, 1
-			ror ah, 1
-			ror ah, 1 
-			
-			; Put signed y coordinate into al
-			and al, 00000111b
-
-			mov bh, ah ; bh: relative x coordinate
-			mov bl, al ; bl: relative y coordinate
-			call coordinate_relative_to_absolute
-			mov ah, bh ; bh: absolute x coordinate
-			mov al, bl ; bl: absolute y coordinate
-			
-			mov bh, ah ; bh: absolute x coordinate
-			mov bl, al ; bl: absolute y coordinate
-			call coordinate_absolute_to_LCD
-			mov ah, bh ; bh: LCD x coordinate + cs + m or l
-			mov al, bl ; bl: LCD y coordinate
-			
-			mov bh, ah ; bh: LCD x coordinate + cs + m or l
-			mov bl, al ; bl: LCD y coordinate
-			call LCD_print
-			
-			int_service_move_loop2_skip:
-			loop int_service_move_loop2
-			
-		int_service_move_end1: nop
+		int_service_move_end1:
 		
 		pop ax
 		pop bx
@@ -1004,6 +740,149 @@ start:
 		ret
 	LCD_busy_cs2 endp
 
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	LCD_erase proc near
+		push dx
+		push cx
+		push ax
+		
+		mov cx, 4
+		LCD_erase_loop0:
+			mov di, cx
+			mov ah, DS:[box1+4-di] ; start from box1
+			mov bl, cl
+			sub bl, 3 ; bl: relative y address
+			add bl, 80 ; bl: absolute y address
+			mov al, 00000001b
+			
+			push cx
+			mov cx, 4
+			LCD_erase_loop1:
+				test ah, al	
+				jz LCD_erase_loop1_continue
+				mov bh, cl
+				sub bh, 2 ; bh: relative x address
+				add bh, 40 ; bl: absolute x address
+				LCD_erase_4x4 ; P(bh: absolute x address, const bl: absolute y address)
+				
+				LCD_erase_loop1_continue:
+				rol al, 1
+				loop LCD_erase_loop1
+			pop cx
+			loop LCD_erase_loop0
+		
+		pop ax
+		pop cx
+		pop dx
+		ret
+	LCD_erase endp
+	
+	LCD_erase_4x4 proc near
+		push dx
+		push cx
+		push ax
+		mov tmp1, bl
+		
+		call coordinate_absolute_to_LCD ; R(bh: LCD x coordinate + cs + m or l, bl: LCD y coordinate)-P(bh: absolute x address, const bl: absolute y address)
+		
+		test bh, 00010000b
+		jnz LCD_erase_4x4_cs2
+			test bh, 00001000b
+			jnz LCD_erase_4x4_m
+				; cs1 l
+				and bh, 00000111b
+				or bh, 10111000b
+				mov dx, lcd_cs1_control
+				
+				call LCD_busy_cs1
+				mov al, bh
+				out dx, al ; set x address of cs1
+				
+				call LCD_busy_cs1
+				mov al, bl
+				out dx, al ; set y address of cs1
+				
+				call LCD_busy_cs1
+				mov dx, lcd_cs1_data
+				in al, dx ; get data
+				and al, 11110000
+				out dx, al ; erase
+				
+				jmp LCD_erase_4x4_end0
+			LCD_erase_4x4_m:
+				; cs1 m
+				and bh, 00000111b
+				or bh, 10111000b
+				mov dx, lcd_cs1_control
+				
+				call LCD_busy_cs1
+				mov al, bh
+				out dx, al ; set x address of cs1
+				
+				call LCD_busy_cs1
+				mov al, bl
+				out dx, al ; set y address of cs1
+				
+				call LCD_busy_cs1
+				mov dx, lcd_cs1_data
+				in al, dx ; get data
+				and al, 00001111
+				out dx, al ; erase
+				
+				jmp LCD_erase_4x4_end0
+		LCD_erase_4x4_cs2:
+			test bh, 00001000b
+			jnz LCD_erase_4x4_m
+				; cs2 l
+				and bh, 00000111b
+				or bh, 10111000b
+				mov dx, lcd_cs2_control
+				
+				call LCD_busy_cs2
+				mov al, bh
+				out dx, al ; set x address of cs1
+				
+				call LCD_busy_cs2
+				mov al, bl
+				out dx, al ; set y address of cs1
+				
+				call LCD_busy_cs2
+				mov dx, lcd_cs2_data
+				in al, dx ; get data
+				and al, 11110000
+				out dx, al ; erase
+				
+				jmp LCD_erase_4x4_end0
+			LCD_erase_4x4_m:
+				; cs2 m
+				and bh, 00000111b
+				or bh, 10111000b
+				mov dx, lcd_cs2_control
+				
+				call LCD_busy_cs2
+				mov al, bh
+				out dx, al ; set x address of cs1
+				
+				call LCD_busy_cs2
+				mov al, bl
+				out dx, al ; set y address of cs1
+				
+				call LCD_busy_cs2
+				mov dx, lcd_cs2_data
+				in al, dx ; get data
+				and al, 00001111
+				out dx, al ; erase
+				
+				jmp LCD_erase_4x4_end0
+		
+		LCD_erase_4x4_end0:
+
+		mov bl, tmp1
+		pop ax
+		pop cx
+		pop dx
+	LCD_erase_4x4 endp
+	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	LCD_elminate proc near
 	
@@ -1155,20 +1034,56 @@ start:
 		pop dx
 		ret
 	LCD_init endp
-	
+
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	LCD_read proc near ;
+	LCD_print proc near
 		push dx
 		push cx
 		push ax
 		
-		; bh: LCD x coordinate + cs + m or l
-		; bl: LCD y coordinate
+		mov cx, 4
+		LCD_print_loop0:
+			mov di, cx
+			mov ah, DS:[box1+4-di] ; start from box1
+			mov bl, cl
+			sub bl, 3 ; bl: relative y address
+			add bl, 80 ; bl: absolute y address
+			mov al, 00000001b
+			
+			push cx
+			mov cx, 4
+			LCD_print_loop1:
+				test ah, al	
+				jz LCD_print_loop1_continue
+				mov bh, cl
+				sub bh, 2 ; bh: relative x address
+				add bh, 40 ; bl: absolute x address
+				LCD_print_4x4 ; P(bh: absolute x address, const bl: absolute y address)
+				
+				LCD_print_loop1_continue:
+				rol al, 1
+				loop LCD_print_loop1
+			pop cx
+			loop LCD_print_loop0
+		
+		pop ax
+		pop cx
+		pop dx
+		ret
+	LCD_print endp
+	
+	LCD_print_4x4 proc near
+		push dx
+		push cx
+		push ax
+		mov tmp1, bl
+		
+		call coordinate_absolute_to_LCD ; R(bh: LCD x coordinate + cs + m or l, bl: LCD y coordinate)-P(bh: absolute x address, const bl: absolute y address)
 		
 		test bh, 00010000b
-		jnz LCD_read_cs2
+		jnz LCD_print_4x4_cs2
 			test bh, 00001000b
-			jnz LCD_read_m
+			jnz LCD_print_4x4_m
 				; cs1 l
 				and bh, 00000111b
 				or bh, 10111000b
@@ -1185,11 +1100,11 @@ start:
 				call LCD_busy_cs1
 				mov dx, lcd_cs1_data
 				in al, dx ; get data
+				or al, 00001111b
+				out dx, al ; print
 				
-				and al, 00000001b 
-				jnz LCD_read_exist
-				jmp LCD_read_notexist
-			LCD_read_m:
+				jmp LCD_print_4x4_end0
+			LCD_print_4x4_m:
 				; cs1 m
 				and bh, 00000111b
 				or bh, 10111000b
@@ -1206,13 +1121,13 @@ start:
 				call LCD_busy_cs1
 				mov dx, lcd_cs1_data
 				in al, dx ; get data
+				or al, 11110000b
+				out dx, al ; erase
 				
-				and al, 00010000b 
-				jnz LCD_read_exist
-				jmp LCD_read_notexist
-		LCD_read_cs2:
+				jmp LCD_print_4x4_end0
+		LCD_print_4x4_cs2:
 			test bh, 00001000b
-			jnz LCD_read_m
+			jnz LCD_print_4x4_m
 				; cs2 l
 				and bh, 00000111b
 				or bh, 10111000b
@@ -1229,11 +1144,11 @@ start:
 				call LCD_busy_cs2
 				mov dx, lcd_cs2_data
 				in al, dx ; get data
+				or al, 00001111b
+				out dx, al ; print
 				
-				and al, 00000001b 
-				jnz LCD_read_exist
-				jmp LCD_read_notexist
-			LCD_read_m:
+				jmp LCD_print_4x4_end0
+			LCD_print_4x4_m:
 				; cs2 m
 				and bh, 00000111b
 				or bh, 10111000b
@@ -1250,110 +1165,18 @@ start:
 				call LCD_busy_cs2
 				mov dx, lcd_cs2_data
 				in al, dx ; get data
+				or al, 11110000b
+				out dx, al ; print
 				
-				and al, 00010000b 
-				jnz LCD_read_exist
-				jmp LCD_read_notexist
-		LCD_read_exist:
-			mov bl, 00000001b
-			jmp LCD_read_exist_end
-		LCD_read_notexist:
-			mov bl, 0
-		LCD_read_exist_end:
+				jmp LCD_print_4x4_end0
 		
+		LCD_print_4x4_end0:
+
+		mov bl, tmp1
 		pop ax
 		pop cx
 		pop dx
-		ret
-	LCD_read endp
-	
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	LCD_update proc near
-		push dx
-		push cx
-		push ax
-		
-; erase LCD
-		mov cs, 11
-		LCD_update_loop1:
-			mov al, DS[box1+cs-1]
-			test al, 01000000b
-			jz LCD_update_loop1_skip
-			
-			; Put signed x coordinate into ah
-			mov ah, al
-			and ah, 00111000b
-			ror ah, 1
-			ror ah, 1
-			ror ah, 1 
-			
-			; Put signed y coordinate into al
-			and al, 00000111b
-
-			mov bh, ah ; bh: relative x coordinate
-			mov bl, al ; bl: relative y coordinate
-			call coordinate_relative_to_absolute
-			mov ah, bh ; bh: absolute x coordinate
-			mov al, bl ; bl: absolute y coordinate
-			
-			mov bh, ah ; bh: absolute x coordinate
-			mov bl, al ; bl: absolute y coordinate
-			call coordinate_absolute_to_LCD
-			mov ah, bh ; bh: LCD x coordinate + cs + m or l
-			mov al, bl ; bl: LCD y coordinate
-			
-			mov bh, ah ; bh: LCD x coordinate + cs + m or l
-			mov bl, al ; bl: LCD y coordinate
-			call LCD_erase
-			
-			LCD_update_loop1_skip:
-			loop LCD_update_loop1
-
-; drop tetris
-		dec center_y
-		
-; print LCD
-		mov cs, 11
-		LCD_update_loop2:
-			mov al, DS[box1+cs-1]
-			test al, 01000000b
-			jz LCD_update_loop2_skip
-			
-			; Put signed x coordinate into ah
-			mov ah, al
-			and ah, 00111000b
-			ror ah, 1
-			ror ah, 1
-			ror ah, 1 
-			
-			; Put signed y coordinate into al
-			and al, 00000111b
-
-			mov bh, ah ; bh: relative x coordinate
-			mov bl, al ; bl: relative y coordinate
-			call coordinate_relative_to_absolute
-			mov ah, bh ; bh: absolute x coordinate
-			mov al, bl ; bl: absolute y coordinate
-			
-			mov bh, ah ; bh: absolute x coordinate
-			mov bl, al ; bl: absolute y coordinate
-			call coordinate_absolute_to_LCD
-			mov ah, bh ; bh: LCD x coordinate + cs + m or l
-			mov al, bl ; bl: LCD y coordinate
-			
-			mov bh, ah ; bh: LCD x coordinate + cs + m or l
-			mov bl, al ; bl: LCD y coordinate
-			call LCD_print
-			
-			LCD_update_loop2_skip:
-			loop LCD_update_loop2
-			
-		pop ax
-		pop cx
-		pop dx
-		ret
-	LCD_update endp
-		
+	LCD_print_4x4 endp
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	random_generator proc near
 		push dx
@@ -1399,62 +1222,59 @@ start:
 		cmp random_number, 6
 		je pick_O
 		
-		mov al, 11000000b
-		mov ah, 01000000b
-		
 		tetris_init_pick_I:
-			or box4, al
-			or box5, al
-			or box6, al
-			or box7, al
-			mov count, 2
+			mov box1, 0
+			mov box2, 00001111b
+			mov box3, 0
+			mov box4, 0
+			mov cout_max, 2
 			jmp tetris_init_end
 			
 		tetris_init_pick_T:
-			or box4, al
-			or box5, ah
-			or box6, al
-			or box9, al
+			mov box1, 0
+			mov box2, 00001110b
+			mov box3, 00000100b
+			mov box4, 0
 			mov count_max, 4
 			jmp tetris_init_end
 			
 		tetris_init_pick_L:
-			or box4, ah
-			or box5, al
-			or box6, al
-			or box8, al
+			mov box1, 0
+			mov box2, 00001110b
+			mov box3, 00001000b
+			mov box4, 0
 			mov count_max, 4
 			jmp tetris_init_end
 			
 		tetris_init_pick_J:
-			or box4, al
-			or box5, al
-			or box6, ah
-			or box10, al
+			mov box1, 0
+			mov box2, 00001110b
+			mov box3, 00000010b
+			mov box4, 0
 			mov count_max, 4
 			jmp tetris_init_end
 			
 		tetris_init_pick_Z:
-			or box4, al
-			or box5, ah
-			or box9, al
-			or box10, al
+			mov box1, 0
+			mov box2, 00001100b
+			mov box3, 00000110b
+			mov box4, 0
 			mov count_max, 2
 			jmp tetris_init_end
 			
 		tetris_init_pick_S:
-			or box6, al
-			or box5, ah
-			or box8, al
-			or box9, al
+			mov box1, 0
+			mov box2, 00000110b
+			mov box3, 00001100b
+			mov box4, 0
 			mov count_max, 2
 			jmp tetris_init_end
 
 		tetris_init_pick_O:
-			or box9, al
-			or box5, ah
-			or box6, ah
-			or box10, al
+			mov box1, 0
+			mov box2, 00000110b
+			mov box3, 00000110b
+			mov box4, 0
 			jmp tetris_init_end
 			
 		tetris_init_end:
