@@ -134,9 +134,9 @@ start:
 				call delay ; Pending
 				call dead ; Pending al = 1 dead
 
-				dead
-				cmp al, 0
-				jnz dead
+				cmp bl, 1
+		
+			    je main_dead 
 
 				dec center_y
 				call collision ; Done R(bl: collision 1, no collision 0)
@@ -169,7 +169,7 @@ start:
 			 jmp stage2
 		 jmp stage1
 		
-		 dead:
+		 main_dead:
 		
 	 jmp stage0
 
@@ -503,7 +503,220 @@ start:
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	dead proc near
-	
+	push ax
+	push bx
+	push cx
+	    cmp random_number, 0
+		je dead_I
+		cmp random_number, 1
+		je dead_T
+		cmp random_number, 2
+		je dead_L
+		cmp random_number, 3
+		je dead_J
+		cmp random_number, 4
+		je dead_Z
+		cmp random_number, 5
+		je dead_S
+		cmp random_number, 6
+		je dead_O
+		
+		dead_I:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,7
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_T:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_L:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,4
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_J:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_Z:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_S:
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,4
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+	    dead_O:
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		
+		real_dead:
+		mov bl, 1
+	end_dead:
+        pop ax
+		pop bx
+		pop cx
 		ret
 	dead endp
 		
@@ -1020,8 +1233,134 @@ start:
 		push cx
 		push ax
 		
+		L1_full:
+		mov cx, 3
+		push cx
+		test bl, 00000001b
+		jnz flash_L1
+		L2_full:
+		test bl, 00000010b
+		jnz flash_L2
+		L3_full:
+		test bl, 00000100b
+		jnz flash_L3
+		L4_full:
+		test bl, 00001000b
+		jnz flash_L4
+		jmp end_LCD_flash
 		
+		flash_L1:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y-2
+        L1_increase_bh:
+		inc bh
+		call LCD_erase_4x4
+		loop L1_increase_bh
+		pop bl
+		jmp L2_full
 		
+		flash_L2:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y-1
+        L2_increase_bh:
+		inc bh
+		call LCD_erase_4x4
+		loop L2_increase_bh
+		pop bl
+		jmp L3_full
+		
+		flash_L3:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y
+        L3_increase_bh:
+		inc bh
+		call LCD_erase_4x4
+		loop L3_increase_bh
+		pop bl
+		jmp L4_full
+		
+		flash_L4:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y
+        L4_increase_bh:
+		inc bh
+		call LCD_erase_4x4
+		loop L4_increase_bh
+	    pop bl
+		
+		L1_full_print:
+		test bl, 00000001b
+		jnz print_L1
+		L2_full_print:
+		test bl, 00000010b
+		jnz print_L2
+		L3_full_print:
+		test bl, 00000100b
+		jnz print_L3
+		L4_full_print:
+		test bl, 00001000b
+		jnz print_L4
+		jmp end_LCD_flash
+		
+		print_L1:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y-2
+        print_L1_increase_bh:
+		inc bh
+		call LCD_print_4x4
+		loop print_L1_increase_bh
+		pop bl
+		jmp L2_full_print
+		
+		print_L2:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y-1
+        print_L2_increase_bh:
+		inc bh
+		call LCD_print_4x4
+		loop print_L2_increase_bh
+		pop bl
+		jmp L3_full_print
+		
+		print_L3:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y
+        print_L3_increase_bh:
+		inc bh
+		call LCD_print_4x4
+		loop print_L3_increase_bh
+		pop bl
+		jmp L4_full_print
+		
+		print_L4:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y
+        print_L4_increase_bh:
+		inc bh
+		call LCD_print_4x4
+		loop print_L4_increase_bh
+	    pop bl
+		pop cx
+		
+		loop L1_full
+		
+	    end_LCD_flash:
 		pop ax
 		pop cx
 		pop dx
