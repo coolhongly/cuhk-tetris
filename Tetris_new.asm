@@ -452,73 +452,6 @@ start:
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	dead proc near
-	
-		ret
-	dead endp
-		
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	fill proc near
-		push dx
-		push cx
-		push ax
-		
-		mov al, center_y
-		inc al
-		mov cl, 2
-		mul cl ; al = 2 * absolute y address
-		mov di, ax ; DS:[row1+di-2]: value of a row
-		cmp DS:[row1+di-2], 0000001111111111b
-		jne fill_jmp0
-		or bl, 00001000b ; 00001000b represents top
-		fill_jmp0:
-		
-		mov al, center_y
-		mov cl, 2
-		mul cl ; al = 2 * absolute y address
-		mov di, ax ; DS:[row1+di-2]: value of a row
-		cmp DS:[row1+di-2], 0000001111111111b
-		jne fill_jmp1
-		or bl, 00000100b
-		fill_jmp1:
-		
-		mov al, center_y
-		dec al
-		mov cl, 2
-		mul cl ; al = 2 * absolute y address
-		mov di, ax ; DS:[row1+di-2]: value of a row
-		cmp DS:[row1+di-2], 0000001111111111b
-		jne fill_jmp2
-		or bl, 00000010b
-		fill_jmp2:
-		
-		mov al, center_y
-		dec al
-		dec al
-		mov cl, 2
-		mul cl ; al = 2 * absolute y address
-		mov di, ax ; DS:[row1+di-2]: value of a row
-		cmp DS:[row1+di-2], 0000001111111111b
-		jne fill_jmp3
-		or bl, 00000001b
-		fill_jmp3:
-		
-		pop ax
-		pop cx
-		pop dx
-		ret
-	fill endp
-<<<<<<< HEAD
-	
-=======
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	delay proc near
-	
-		ret
-	delay endp
-	
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	dead proc near
 	push ax
 	push bx
 	push cx
@@ -736,7 +669,58 @@ start:
 		ret
 	dead endp
 		
->>>>>>> 02628236648fee8451fb4519ae4c3afaa11c32b5
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	fill proc near
+		push dx
+		push cx
+		push ax
+		
+		mov al, center_y
+		inc al
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax ; DS:[row1+di-2]: value of a row
+		cmp DS:[row1+di-2], 0000001111111111b
+		jne fill_jmp0
+		or bl, 00001000b ; 00001000b represents top
+		fill_jmp0:
+		
+		mov al, center_y
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax ; DS:[row1+di-2]: value of a row
+		cmp DS:[row1+di-2], 0000001111111111b
+		jne fill_jmp1
+		or bl, 00000100b
+		fill_jmp1:
+		
+		mov al, center_y
+		dec al
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax ; DS:[row1+di-2]: value of a row
+		cmp DS:[row1+di-2], 0000001111111111b
+		jne fill_jmp2
+		or bl, 00000010b
+		fill_jmp2:
+		
+		mov al, center_y
+		dec al
+		dec al
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax ; DS:[row1+di-2]: value of a row
+		cmp DS:[row1+di-2], 0000001111111111b
+		jne fill_jmp3
+		or bl, 00000001b
+		fill_jmp3:
+		
+		pop ax
+		pop cx
+		pop dx
+		ret
+	fill endp
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	int_service_0 proc near
 		cli
@@ -1356,12 +1340,10 @@ start:
 		push dx
 		push cx
 		push ax
-		
-<<<<<<< HEAD
+
 		mov cx, 4
 		LCD_flash_loop0:
 			
-=======
 		L1_full:
 		mov cx, 3
 		push cx
@@ -1488,8 +1470,7 @@ start:
 		pop cx
 		
 		loop L1_full
->>>>>>> 02628236648fee8451fb4519ae4c3afaa11c32b5
-		
+
 	    end_LCD_flash:
 		pop ax
 		pop cx
