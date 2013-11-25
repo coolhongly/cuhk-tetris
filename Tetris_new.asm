@@ -452,9 +452,9 @@ start:
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	dead proc near
-	push ax
-	push bx
-	push cx
+		push cx
+		push bx
+		push ax
 	    cmp random_number, 0
 		je dead_I
 		cmp random_number, 1
@@ -662,7 +662,7 @@ start:
 		
 		real_dead:
 		mov bl, 1
-	end_dead:
+		end_dead:
         pop ax
 		pop bx
 		pop cx
