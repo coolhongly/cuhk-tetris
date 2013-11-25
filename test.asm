@@ -7,6 +7,9 @@
 ; WU Yang
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; change in Master
+; Coolhongly
+; and more
+; a function
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;pin assign
 ;8088 system        64x128 lcd
