@@ -158,7 +158,7 @@ start:
 					call fill ; Done R(bl: 0000xxxx, x=1 line is filled)
 					test bl, bl
 					jz main_not_fill
-					call LCD_flash ; Pending
+					call LCD_flash ; Pending P(bl: 0000xxxx, x=1 line is filled)
 					call LCD_elminate ; Pending
 					call LCD_drop ; Pending
 					call LCD_reprint ; Pending
@@ -1014,6 +1014,19 @@ start:
 		ret
 	LCD_elminate endp
 	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	LCD_flash proc near
+		push dx
+		push cx
+		push ax
+		
+		
+		
+		pop ax
+		pop cx
+		pop dx
+		ret
+	LCD_flash endp	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	LCD_init proc near
 		push dx
