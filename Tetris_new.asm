@@ -153,8 +153,17 @@ start:
 
 				main_collision_happen:
 					inc center_y
+					
+					call add ; Done
+					call fill ; Done R(bl: 0000xxxx, x=1 line is filled)
+					test bl, bl
+					jz main_not_fill
+					call LCD_flash ; Pending
 					call LCD_elminate ; Pending
 					call LCD_drop ; Pending
+					call LCD_reprint ; Pending
+					
+					main_not_fill:
 				main_collision_happen_skip:
 
 			 jmp stage2
@@ -242,6 +251,71 @@ start:
 	8259_init endp
 		
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	add proc near
+		push dx
+		push cx
+		push ax
+		
+		mov cx, 4
+		add_loop0:
+			mov di, cx
+			mov ah, DS:[box1+4-di] ; start from box1
+			mov bl, cl
+			sub bl, 3 ; bl: relative y address
+			add bl, 80 ; bl: absolute y address
+			mov al, 00000001b
+			
+			push cx
+			mov cx, 4
+			add_loop1:
+				test ah, al	
+				jz add_loop1_continue
+				mov bh, cl
+				sub bh, 2 ; bh: relative x address
+				ad bh, 40 ; bh: absolute x address
+				call add_item ; P(bh: absolute x address, const bl: absolute y address)
+				rol al, 1
+				loop add_loop1
+			pop cx
+			loop add_loop0
+		mov bl, 0
+		jmp add_end0
+		add_end1: 
+			mov bl, 1 
+		add_end0: 
+		
+		pop ax
+		pop cx
+		pop dx
+		ret
+	add endp
+	
+	add_item proc near ; P(bh: absolute x address, const bl: absolute y address)
+		push dx
+		push cx
+		push ax
+		
+		mov al, bl ; bh: absolute x address, al: absolute y address
+		
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax ; DS:[row1+di-2]: value of a row
+		
+		mov ax, 0000001000000000b
+		mov cx, bh
+		dec cx
+		add_item_loop0:
+			ror ax, 1
+			loop add_item_loop0
+		or DS:[row1+di-2], ax		
+		
+		pop ax
+		pop cx
+		pop dx
+		ret
+	add_item endp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	collision proc near
 		push dx
 		push cx
@@ -284,7 +358,7 @@ start:
 		ret
 	collision endp
 	
-	collision_test proc near ; R(bh: 1 for collision, 0 otherwise)-P(bh: relative x address, const bl: relative y address)
+	collision_test proc near ; R(bh: 1 for collision, 0 otherwise)-P(bh: absolute x address, const bl: absolute y address)
 		push dx
 		push cx
 		push ax
@@ -369,7 +443,58 @@ start:
 		pop dx
 		ret
 	coordinate_absolute_to_LCD endp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	fill proc near
+		push dx
+		push cx
+		push ax
 		
+		mov al, center_y
+		inc al
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax ; DS:[row1+di-2]: value of a row
+		cmp DS:[row1+di-2], 0000001111111111b
+		jne fill_jmp0
+		or bl, 00001000b
+		fill_jmp0:
+		
+		mov al, center_y
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax ; DS:[row1+di-2]: value of a row
+		cmp DS:[row1+di-2], 0000001111111111b
+		jne fill_jmp1
+		or bl, 00000100b
+		fill_jmp1:
+		
+		mov al, center_y
+		dec al
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax ; DS:[row1+di-2]: value of a row
+		cmp DS:[row1+di-2], 0000001111111111b
+		jne fill_jmp2
+		or bl, 00000010b
+		fill_jmp2:
+		
+		mov al, center_y
+		dec al
+		dec al
+		mov cl, 2
+		mul cl ; al = 2 * absolute y address
+		mov di, ax ; DS:[row1+di-2]: value of a row
+		cmp DS:[row1+di-2], 0000001111111111b
+		jne fill_jmp3
+		or bl, 00000001b
+		fill_jmp3:
+		
+		pop ax
+		pop cx
+		pop dx
+		ret
+	fill endp
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	delay proc near
 	
