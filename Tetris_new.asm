@@ -134,9 +134,9 @@ start:
 				call delay ; Pending
 				call dead ; Pending al = 1 dead
 
-				dead
-				cmp al, 0
-				jnz dead
+				cmp bl, 1
+		
+			    je main_dead 
 
 				dec center_y
 				call collision ; Done R(bl: collision 1, no collision 0)
@@ -158,10 +158,10 @@ start:
 					call fill ; Done R(bl: 0000xxxx, x=1 line is filled)
 					test bl, bl
 					jz main_not_fill
-					call LCD_flash ; Pending P(bl: 0000xxxx, x=1 line is filled)
-					call LCD_elminate ; Pending
-					call LCD_drop ; Pending
-					call LCD_reprint ; Pending
+					call LCD_flash ; Done P(const bl: 0000xxxx, x=1 line is filled)
+					call LCD_eliminate ; Done P(const bl: 0000xxxx, x=1 line is filled)
+					call LCD_drop ; Done P(bl: 0000xxxx, x=1 line is filled)
+					call LCD_reprint ; Done
 					
 					main_not_fill:
 				main_collision_happen_skip:
@@ -169,7 +169,7 @@ start:
 			 jmp stage2
 		 jmp stage1
 		
-		 dead:
+		 main_dead:
 		
 	 jmp stage0
 
@@ -365,13 +365,13 @@ start:
 			
 		cmp bh, 1
 		jl collision_test_end1
-		cmp bh, 40
+		cmp bh, 10
 		jg collision_test_end1
 		
 		mov al, bl
 		cmp al, 1
 		jl collision_test_end1
-		cmp al, 80
+		cmp al, 20
 		jg collision_test_end1
 		
 		mov cl, 2
@@ -443,6 +443,19 @@ start:
 		pop dx
 		ret
 	coordinate_absolute_to_LCD endp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	delay proc near
+	
+		ret
+	delay endp
+	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	dead proc near
+	
+		ret
+	dead endp
+		
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	fill proc near
 		push dx
@@ -456,7 +469,7 @@ start:
 		mov di, ax ; DS:[row1+di-2]: value of a row
 		cmp DS:[row1+di-2], 0000001111111111b
 		jne fill_jmp0
-		or bl, 00001000b
+		or bl, 00001000b ; 00001000b represents top
 		fill_jmp0:
 		
 		mov al, center_y
@@ -494,6 +507,9 @@ start:
 		pop dx
 		ret
 	fill endp
+<<<<<<< HEAD
+	
+=======
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	delay proc near
@@ -503,10 +519,224 @@ start:
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	dead proc near
-	
+	push ax
+	push bx
+	push cx
+	    cmp random_number, 0
+		je dead_I
+		cmp random_number, 1
+		je dead_T
+		cmp random_number, 2
+		je dead_L
+		cmp random_number, 3
+		je dead_J
+		cmp random_number, 4
+		je dead_Z
+		cmp random_number, 5
+		je dead_S
+		cmp random_number, 6
+		je dead_O
+		
+		dead_I:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,7
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_T:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_L:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,4
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_J:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_Z:
+		mov bh,4
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		dead_S:
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,4
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+	    dead_O:
+		mov bh,5
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,20
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,5
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		
+		mov bh,6
+		mov bl,19
+		call collision
+		cmp bh, 1
+		je real_dead
+		mov bl,0
+		jmp end_dead
+		
+		
+		real_dead:
+		mov bl, 1
+	end_dead:
+        pop ax
+		pop bx
+		pop cx
 		ret
 	dead endp
 		
+>>>>>>> 02628236648fee8451fb4519ae4c3afaa11c32b5
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	int_service_0 proc near
 		cli
@@ -864,6 +1094,99 @@ start:
 		pop dx
 		ret
 	LCD_busy_cs2 endp
+	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	LCD_drop proc near ; P(bl: 0000xxxx)
+		push dx
+		push cx
+		push ax
+		
+		mov bh, 00001000b ; bl: test bit
+		mov cx, 4
+		LCD_drop_loop0:
+			test bl, bh
+			jz LCD_drop_loop0_continue
+			mov al, center_y ;
+			add al, cx
+			sub al, 3 ; al: absolute y
+			
+			LCD_drop_jmp0:
+			
+			push cx
+			mov cx, 2
+			mul cl ; al: absolute y * 2
+			pop cx
+			
+			cmp al, 40
+			je LCD_drop_toprow ; come to top row
+			
+			mov di, ax
+			push bx
+			mov bx, DS[row1 + di]
+			mov DS[row1 + di -2], bx
+			pop bx
+			
+			inc al
+			jmp LCD_drop_jmp0
+			LCD_drop_toprow:
+				mov DS[row1 + di - 2], 0
+			
+			LCD_drop_loop0_continue:
+			ror bh, 1
+			loop LCD_drop_loop0
+			
+		pop ax
+		pop cx
+		pop dx
+		ret
+	LCD_drop endp
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	LCD_eliminate proc near ; P(bl: 0000xxxx)
+		push dx
+		push cx
+		push ax
+		
+		mov cx, 4
+		mov al, 00000001b
+		LCD_eliminate_loop0:
+			test bl, al
+			jnz LCD_eliminate_loop0_break
+			rol al, 1
+			loop LCD_eliminate_loop0
+		LCD_eliminate_loop0_break:
+		mov al, 2
+		sub al, cx ; al stores relative y to start
+		
+		push bx ; protect bl
+		
+		add al, center_y ; al stores absolute y to start
+		sub al, 
+		mov cl, 2
+		mul cl
+		mov di, al ; row1+di-2, row to start
+		
+		mov cx, 20
+		sub cx, al
+		inc cx ; cx denotes # of loop to eliminate
+		LCD_eliminate_loop1:
+			push cx
+			mov cx, 10
+			LCD_eliminate_loop2:
+				mov bh, cl
+				mov bl, al
+				call LCD_erase_4x4
+				loop LCD_eliminate_loop2
+			pop cx
+			inc al
+			loop LCD_eliminate_loop1
+			
+		pop bx
+
+		pop ax
+		pop cx
+		pop dx
+		ret
+	LCD_eliminate endp
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	LCD_erase proc near
@@ -913,7 +1236,7 @@ start:
 		test bh, 00010000b
 		jnz LCD_erase_4x4_cs2
 			test bh, 00001000b
-			jnz LCD_erase_4x4_m
+			jnz LCD_erase_4x4_cs1_m
 				; cs1 l
 				and bh, 00000111b
 				or bh, 10111000b
@@ -930,11 +1253,16 @@ start:
 				call LCD_busy_cs1
 				mov dx, lcd_cs1_data
 				in al, dx ; get data
-				and al, 11110000
-				out dx, al ; erase
+				
+				mov cx, 4
+				LCD_erase_4x4_cs1_l_loop
+					call LCD_busy_cs1
+					and al, 11110000b
+					out dx, al ; erase
+					loop LCD_erase_4x4_cs1_l_loop
 				
 				jmp LCD_erase_4x4_end0
-			LCD_erase_4x4_m:
+			LCD_erase_4x4_cs1_m:
 				; cs1 m
 				and bh, 00000111b
 				or bh, 10111000b
@@ -951,13 +1279,18 @@ start:
 				call LCD_busy_cs1
 				mov dx, lcd_cs1_data
 				in al, dx ; get data
-				and al, 00001111
-				out dx, al ; erase
+				
+				mov cx, 4
+				LCD_erase_4x4_cs1_m_loop
+					call LCD_busy_cs1
+					and al, 00001111b
+					out dx, al ; erase
+					loop LCD_erase_4x4_cs1_m_loop
 				
 				jmp LCD_erase_4x4_end0
 		LCD_erase_4x4_cs2:
 			test bh, 00001000b
-			jnz LCD_erase_4x4_m
+			jnz LCD_erase_4x4_cs2_m
 				; cs2 l
 				and bh, 00000111b
 				or bh, 10111000b
@@ -974,11 +1307,16 @@ start:
 				call LCD_busy_cs2
 				mov dx, lcd_cs2_data
 				in al, dx ; get data
-				and al, 11110000
-				out dx, al ; erase
+				
+				mov cx, 4
+				LCD_erase_4x4_cs2_l_loop
+					call LCD_busy_cs2
+					and al, 11110000b
+					out dx, al ; erase
+					loop LCD_erase_4x4_cs2_l_loop
 				
 				jmp LCD_erase_4x4_end0
-			LCD_erase_4x4_m:
+			LCD_erase_4x4_cs2_m:
 				; cs2 m
 				and bh, 00000111b
 				or bh, 10111000b
@@ -995,8 +1333,13 @@ start:
 				call LCD_busy_cs2
 				mov dx, lcd_cs2_data
 				in al, dx ; get data
-				and al, 00001111
-				out dx, al ; erase
+				
+				mov cx, 4
+				LCD_erase_4x4_cs2_m_loop
+					call LCD_busy_cs2
+					and al, 00001111b
+					out dx, al ; erase
+					loop LCD_erase_4x4_cs2_m_loop
 				
 				jmp LCD_erase_4x4_end0
 		
@@ -1009,19 +1352,145 @@ start:
 	LCD_erase_4x4 endp
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	LCD_elminate proc near
-	
-		ret
-	LCD_elminate endp
-	
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	LCD_flash proc near
+	LCD_flash proc near ; P(bl: 0000xxxx, x=1 line is filled)
 		push dx
 		push cx
 		push ax
 		
+<<<<<<< HEAD
+		mov cx, 4
+		LCD_flash_loop0:
+			
+=======
+		L1_full:
+		mov cx, 3
+		push cx
+		test bl, 00000001b
+		jnz flash_L1
+		L2_full:
+		test bl, 00000010b
+		jnz flash_L2
+		L3_full:
+		test bl, 00000100b
+		jnz flash_L3
+		L4_full:
+		test bl, 00001000b
+		jnz flash_L4
+		jmp end_LCD_flash
 		
+		flash_L1:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y-2
+        L1_increase_bh:
+		inc bh
+		call LCD_erase_4x4
+		loop L1_increase_bh
+		pop bl
+		jmp L2_full
 		
+		flash_L2:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y-1
+        L2_increase_bh:
+		inc bh
+		call LCD_erase_4x4
+		loop L2_increase_bh
+		pop bl
+		jmp L3_full
+		
+		flash_L3:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y
+        L3_increase_bh:
+		inc bh
+		call LCD_erase_4x4
+		loop L3_increase_bh
+		pop bl
+		jmp L4_full
+		
+		flash_L4:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y
+        L4_increase_bh:
+		inc bh
+		call LCD_erase_4x4
+		loop L4_increase_bh
+	    pop bl
+		
+		L1_full_print:
+		test bl, 00000001b
+		jnz print_L1
+		L2_full_print:
+		test bl, 00000010b
+		jnz print_L2
+		L3_full_print:
+		test bl, 00000100b
+		jnz print_L3
+		L4_full_print:
+		test bl, 00001000b
+		jnz print_L4
+		jmp end_LCD_flash
+		
+		print_L1:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y-2
+        print_L1_increase_bh:
+		inc bh
+		call LCD_print_4x4
+		loop print_L1_increase_bh
+		pop bl
+		jmp L2_full_print
+		
+		print_L2:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y-1
+        print_L2_increase_bh:
+		inc bh
+		call LCD_print_4x4
+		loop print_L2_increase_bh
+		pop bl
+		jmp L3_full_print
+		
+		print_L3:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y
+        print_L3_increase_bh:
+		inc bh
+		call LCD_print_4x4
+		loop print_L3_increase_bh
+		pop bl
+		jmp L4_full_print
+		
+		print_L4:
+		push bl
+		mov cx, 10
+		mov bh, 0
+		mov bl, center_y
+        print_L4_increase_bh:
+		inc bh
+		call LCD_print_4x4
+		loop print_L4_increase_bh
+	    pop bl
+		pop cx
+		
+		loop L1_full
+>>>>>>> 02628236648fee8451fb4519ae4c3afaa11c32b5
+		
+	    end_LCD_flash:
 		pop ax
 		pop cx
 		pop dx
@@ -1221,7 +1690,7 @@ start:
 		test bh, 00010000b
 		jnz LCD_print_4x4_cs2
 			test bh, 00001000b
-			jnz LCD_print_4x4_m
+			jnz LCD_print_4x4_cs1_m
 				; cs1 l
 				and bh, 00000111b
 				or bh, 10111000b
@@ -1238,11 +1707,16 @@ start:
 				call LCD_busy_cs1
 				mov dx, lcd_cs1_data
 				in al, dx ; get data
-				or al, 00001111b
-				out dx, al ; print
+				
+				mov cx, 4
+				LCD_print_4x4_cs1_l_loop
+					call LCD_busy_cs1
+					or al, 00001111b
+					out dx, al ; print
+					loop LCD_print_4x4_cs1_l_loop
 				
 				jmp LCD_print_4x4_end0
-			LCD_print_4x4_m:
+			LCD_print_4x4_cs1_m:
 				; cs1 m
 				and bh, 00000111b
 				or bh, 10111000b
@@ -1259,13 +1733,18 @@ start:
 				call LCD_busy_cs1
 				mov dx, lcd_cs1_data
 				in al, dx ; get data
-				or al, 11110000b
-				out dx, al ; erase
+				
+				mov cx, 4
+				LCD_print_4x4_cs1_m_loop
+					call LCD_busy_cs1
+					or al, 11110000b
+					out dx, al ; print
+					loop LCD_print_4x4_cs1_m_loop
 				
 				jmp LCD_print_4x4_end0
 		LCD_print_4x4_cs2:
 			test bh, 00001000b
-			jnz LCD_print_4x4_m
+			jnz LCD_print_4x4_cs2_m
 				; cs2 l
 				and bh, 00000111b
 				or bh, 10111000b
@@ -1282,11 +1761,16 @@ start:
 				call LCD_busy_cs2
 				mov dx, lcd_cs2_data
 				in al, dx ; get data
-				or al, 00001111b
-				out dx, al ; print
+				
+				mov cx, 4
+				LCD_print_4x4_cs2_l_loop
+					call LCD_busy_cs2
+					or al, 00001111b
+					out dx, al ; print
+					loop LCD_print_4x4_cs2_l_loop
 				
 				jmp LCD_print_4x4_end0
-			LCD_print_4x4_m:
+			LCD_print_4x4_cs2_m:
 				; cs2 m
 				and bh, 00000111b
 				or bh, 10111000b
@@ -1303,8 +1787,13 @@ start:
 				call LCD_busy_cs2
 				mov dx, lcd_cs2_data
 				in al, dx ; get data
-				or al, 11110000b
-				out dx, al ; print
+				
+				mov cx, 4
+				LCD_print_4x4_cs2_m_loop
+					call LCD_busy_cs2
+					or al, 11110000b
+					out dx, al ; print
+					loop LCD_print_4x4_cs2_m_loop
 				
 				jmp LCD_print_4x4_end0
 		
@@ -1315,6 +1804,40 @@ start:
 		pop cx
 		pop dx
 	LCD_print_4x4 endp
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	LCD_reprint proc near
+		push dx
+		push cx
+		push ax
+		
+		mov cx, 20
+		inc cx ; cx denotes # of loop to eliminate
+		LCD_reprint_loop0:
+			push cx
+			mov cx, 10
+			LCD_reprint_loop0:
+				mov bh, cl ; bh: absolute x
+				mov bl, al ; bl: absolute y
+				mov ah, bh
+				mov al, bl
+				call collision
+				test bh, bh
+				jz LCD_reprint_continue
+				mov bh, ah
+				mov bl, al
+				call LCD_print_4x4
+				LCD_reprint_continue:
+				loop LCD_reprint_loop0
+			pop cx
+			inc al
+			loop LCD_reprint_loop0
+		
+		pop ax
+		pop cx
+		pop dx
+		ret
+	LCD_reprint endp
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	random_generator proc near
 		push dx
